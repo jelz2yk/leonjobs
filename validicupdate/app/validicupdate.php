@@ -32,13 +32,14 @@ namespace ValidicUpdate {
         /**
         * Start import and conversion.
         *
-        * Execute a serial methods and catch and print out error. 
+        * Execute methods and catch and print out error. 
         */
         function run() {
             try {
                 $this->declareGlobalVariables();
                 $this->getIds();
                 $this->getActiviIds();
+                $this->startUpdate();
             } catch (Exception $e) {
                 print $e->getMessage();
             }
@@ -74,11 +75,10 @@ namespace ValidicUpdate {
         */
         function getIds() {
             $mysqli = new \mysqli(host, username, password, database);
-                                                                         
+                                                                  
             if ($mysqli->connect_error) {
                 throw new Exception($mysqli->connect_error);
             } else {
-               
                 $sql = "SELECT startdate, nextfitness, nextroutine, nextnutrition, nextsleep, nextweight, " .
                     "nextdiabetes, nextbiometrics from validicupdate";
             
@@ -88,7 +88,7 @@ namespace ValidicUpdate {
                 }
 
                 if ($stmt->execute()) {
-                        
+              
                     $stmt->bind_result($startDate, $nextFitness, $nextRoutine, $nextNutrition, $nextSleep,
                                       $nextWeight, $nextDiabetes, $nextBiometrics);
         
@@ -199,34 +199,79 @@ namespace ValidicUpdate {
         function startUpdate() {
             $nowDate = new \DateTime();
             $startDate = $nowDate->modify('-5 minutes');
-           
+            
             if ($this->ids->allDone) {
                 $startDate = $this->ids->lastupdate->modify('+1 seconds');
             }
-             /*
-            if (i$this->ids->nextfitness != "L") {
-                getValidicData(0, startDate, nowDate, "");
+            if ($this->ids->nextfitness != "L") {
+                $this->getValidicData(0, $startDate, $nowDate, "");
             }
             if ($this->ids->nextroutine != "L") {
-                getValidicData(1, startDate, nowDate, "");
+                $this->getValidicData(1, $startDate, $nowDate, "");
             }
             if ($this->ids->nextnutrition != "L") {
-                getValidicData(2, startDate, nowDate, "");
+                $this->getValidicData(2, $startDate, $nowDate, "");
             }
             if ($this->ids->nextsleep != "L") {
-                getValidicData(3, startDate, nowDate, "");
+                $this->getValidicData(3, $startDate, $nowDate, "");
             }
             if ($this->ids->nextweight != "L") {
-                getValidicData(4, startDate, nowDate, "");
+                $this->getValidicData(4, $startDate, $nowDate, "");
             }
             if ($this->ids->nextdiabetes != "L") {
-                getValidicData(5, startDate, nowDate, "");
+                $this->getValidicData(5, $startDate, $nowDate, "");
             }
             if ($this->ids->nextbiometrics != "L") {
-                getValidicData(6, startDate, nowDate, "");
+                $this->getValidicData(6, $startDate, $nowDate, "");
             }
-            */
         }
+        
+        function getValidicData($validicObject, $startDate, $nowDate, $next) {
+            
+            $url = "https://api.validic.com";
+          
+            if ($next != "")
+            {
+                $cadena = next;
+            }
+            else
+            {
+                $cadena = "/v1/organizations/" . idValidic . "/" .
+                    $this->validicObjects[$validicObject] . "/latest?access_token=" . tokenValidic .
+                    "&start_date=" . $startDate->format('Y-m-d H:i:s') . "&end_date=" . $nowDate->format('Y-m-d H:i:s') . "&show_original_source=1";
+            }
+            
+            $url = $url . $cadena;
+            
+            //print $url;
+            
+            $curl = curl_init();
+
+            if (FALSE === $curl)
+                throw new \Exception('curl failed to initialize');
+            
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            //curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
+            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+
+            $result = curl_exec($curl);
+            
+            if (FALSE === $result)
+                throw new \Exception(curl_error($curl), curl_errno($curl));
+            
+            curl_close($curl);
+            
+            print $result;
+            
+           
+            
+            
+        }
+
     }
 
     /**
