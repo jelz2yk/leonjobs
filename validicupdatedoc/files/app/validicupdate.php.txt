@@ -5,23 +5,35 @@
 namespace ValidicUpdate {
     
     /**
-    * Import and convert user activities from Validic to
-    * Leon fromat. 
-    *
-    * @method void run()
-    * @method void declareGlobalVariables()
-    * @method void getIds()
-    * @method void getActiviIds()
-    *
-    *
+    * Import and convert Validic users activities to Leon format. 
     */
     class Import
     {
-        
+        /**
+        * Hold Ids Model to keep import and conversion tracking
+        *
+        * @var \ValidicUpdate\Ids
+        */
         public $ids;
+        /**
+        * Hold all activities definition used in Validic.
+        *
+        * @var string[]
+        */
         public $validicObjects;
+        /**
+        * Hold all activities definition used in Leon databases.
+        *
+        * @var object[]
+        * mixed.object[ name activity => id activitie ]
+        */
         public $activities;
         
+        /**
+        * Start import and conversion.
+        *
+        * Execute a serial methods and catch and print out error. 
+        */
         function run() {
             try {
                 $this->declareGlobalVariables();
@@ -32,13 +44,34 @@ namespace ValidicUpdate {
             }
         }
         
+        /**
+        * Initizalization of properties.
+        */
         function declareGlobalVariables() {
             include('../config/config.php');
             $this->ids = new Ids();
             $this->validicObjects = array();
             $this->activities = array();
+            
+            array_push($this->validicObjects,"fitness");
+            array_push($this->validicObjects,"routine");
+            array_push($this->validicObjects,"nutrition");
+            array_push($this->validicObjects,"sleep");
+            array_push($this->validicObjects,"weight");
+            array_push($this->validicObjects,"diabetes");
+            array_push($this->validicObjects,"biometrics");
         }
         
+        /**
+        * Quering validicupdate table from Leon Database.
+        *
+        * Get the last import date.
+        *
+        * Check for each users activity if import and conversion have been completed.
+        *
+        * <a href="../classes/ValidicUpdate.Ids.html">Ids</a> model will be used to holding this info.
+        * @link Ids 
+        */
         function getIds() {
             $mysqli = new \mysqli(host, username, password, database);
                                                                          
@@ -109,14 +142,66 @@ namespace ValidicUpdate {
             }
         }
         
+        /**
+        * Quering ValidicActivity table from Leon Database.
+        *
+        * Get id and name activity.
+        *
+        * Those names have been imported from Validic to keep relation of Leon-Validic activities.
+        *
+        * id have been created in Leon.
+        *
+        * activities property will be used to holding this info.
+        */
         function getActiviIds() {
+            $mysqli = new \mysqli(host, username, password, database);
+                                                                         
+            if ($mysqli->connect_error) {
+                throw new Exception($mysqli->connect_error);
+            } else {
+               
+                $sql = "SELECT id, name FROM ValidicActivity";
+            
+                $stmt = $mysqli->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception($mysqli->error);
+                }
+
+                if ($stmt->execute()) {
+                        
+                    $stmt->bind_result($id, $name);
+                    
+                    while ($stmt->fetch()) {
+                        $this->activities[strtolower($name)] = $id;
+                    }
+                    
+                } else {
+                    throw new \Exception($mysqli->error);
+                }
+            
+                $stmt->close();
+                $mysqli->close();
+            }
+        }
+        
+        /**
+        * Create a range dates to import from Validic.
+        *
+        *
+        * Check if all users activity have been completed.
+        *
+        * Yes = adding a second to last import date that wil be used as start date in ranges date.  
+        *
+        * No = Get now date and take out 5 minutes that wil be used as start date in ranges date. 
+        *
+        * Then execute import task.
+        */
+        function startUpdate() {
             $nowDate = new \DateTime();
             $startDate = $nowDate->modify('-5 minutes');
            
             if ($this->ids->allDone) {
-                print $this->ids->lastupdate->format('Y-m-d H:i:s');
                 $startDate = $this->ids->lastupdate->modify('+1 seconds');
-                print $startDate->format('Y-m-d H:i:s');;
             }
              /*
             if (i$this->ids->nextfitness != "L") {
@@ -145,46 +230,55 @@ namespace ValidicUpdate {
     }
 
     /**
-    * Model used to check if user activities have been done.
-    *
-    * @property string $nextFitness  
-    * value (L) = Done
-    * 
-    * @property string $nextRoutine value (L) Done
-    * value (L) = Done
-    *
-    * @property string $nextNutrition value (L) Done
-    * value (L) = Done
-    *
-    * @property string $nextSleep value (L) Done
-    * value (L) = Done
-    *
-    * @property string $nextWeight value (L) Done
-    * value (L) = Done
-    *
-    * @property string $nextDiabetes value (L) Done
-    * value (L) = Done
-    *
-    * @property string $nextBiometrics value (L) Done
-    * value (L) = Done
-    *
-    * @property datetime $lastUpdate
-    * Date update happens wehn all user activities are done
-    *
-    * @property bool $allDone
-    * value (1) = Done all activities
+    * Model used to check if Validic user activities have been imported and converted to Leon Format.
     *
     */
     class Ids
     {
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextFitness;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextRoutine;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextNutrition;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextSleep;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextWeight;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextDiabetes;
+        /**
+        * Value (L) = import and conversion have been completed
+        * @var string
+        */
         public $nextBiometrics;
+        /**
+        * Last import date
+        * @var \DateTime
+        */
         public $lastUpdate;
+        /**
+        * Value (1) = all import and conversion users activities have been completed
+        * @var bool
+        */
         public $allDone;
     }
 }
