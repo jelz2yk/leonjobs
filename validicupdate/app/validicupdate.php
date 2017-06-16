@@ -236,37 +236,41 @@ namespace ValidicUpdate {
             }
             else
             {
-                $cadena = "/v1/organizations/" . idValidic . "/" .
-                    $this->validicObjects[$validicObject] . "/latest?access_token=" . tokenValidic .
-                    "&start_date=" . $startDate->format('Y-m-d H:i:s') . "&end_date=" . $nowDate->format('Y-m-d H:i:s') . "&show_original_source=1";
+                $cadena = "/v1/organizations/" . urlencode(idValidic) . "/" .
+                    urlencode($this->validicObjects[$validicObject]) . "/latest?access_token=" . urlencode(tokenValidic) .
+                    "&start_date=" . urlencode($startDate->format('Y-m-d H:i:s')) . "&end_date=" . urlencode($nowDate->format('Y-m-d H:i:s')) . "&show_original_source=1";
             }
             
             $url = $url . $cadena;
             
-            //print $url;
+            print $url;
             
             $curl = curl_init();
 
             if (FALSE === $curl)
                 throw new \Exception('curl failed to initialize');
-            
+
+            $curl = curl_init();
+           
             curl_setopt($curl, CURLOPT_URL, $url);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            //curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
-            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-            //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
-
+         
             $result = curl_exec($curl);
             
             if (FALSE === $result)
-                throw new \Exception(curl_error($curl), curl_errno($curl));
+                throw new \Exception(curl_errno($curl) .  " " . curl_error($curl));
+            
+            $response = json_decode($result);
+            $info = curl_getinfo($curl);
             
             curl_close($curl);
             
-            print $result;
-            
+            if ($info["http_code"] != 200) 
+                throw new \Exception($result);
+                
+            //var_dump($info);
+           
+            var_dump($response);
            
             
             
